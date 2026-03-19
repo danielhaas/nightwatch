@@ -23,6 +23,21 @@ data class NextEventModel(
         }
     }
 
+    fun weekdayName(): String {
+        val cal = java.util.Calendar.getInstance()
+        cal.timeInMillis = startTimeMillis
+        return when (cal.get(java.util.Calendar.DAY_OF_WEEK)) {
+            java.util.Calendar.MONDAY -> "Montag"
+            java.util.Calendar.TUESDAY -> "Dienstag"
+            java.util.Calendar.WEDNESDAY -> "Mittwoch"
+            java.util.Calendar.THURSDAY -> "Donnerstag"
+            java.util.Calendar.FRIDAY -> "Freitag"
+            java.util.Calendar.SATURDAY -> "Samstag"
+            java.util.Calendar.SUNDAY -> "Sonntag"
+            else -> ""
+        }
+    }
+
     fun startTimeFormatted(): String {
         val cal = java.util.Calendar.getInstance()
         cal.timeInMillis = startTimeMillis

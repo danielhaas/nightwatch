@@ -1,8 +1,6 @@
 package com.nightwatch.ui.components
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -13,6 +11,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nightwatch.model.DayNightState
+import java.util.Calendar
 
 @Composable
 fun ClockDisplay(
@@ -26,19 +25,30 @@ fun ClockDisplay(
         DayNightState.NIGHT -> Color.White.copy(alpha = 0.85f)
     }
 
+    val weekday = when (Calendar.getInstance().get(Calendar.DAY_OF_WEEK)) {
+        Calendar.MONDAY -> "Montag"
+        Calendar.TUESDAY -> "Dienstag"
+        Calendar.WEDNESDAY -> "Mittwoch"
+        Calendar.THURSDAY -> "Donnerstag"
+        Calendar.FRIDAY -> "Freitag"
+        Calendar.SATURDAY -> "Samstag"
+        Calendar.SUNDAY -> "Sonntag"
+        else -> ""
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 40.dp),
+            .padding(bottom = 32.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         Text(
-            text = time,
+            text = "$weekday  $time",
             fontSize = 72.sp,
             fontWeight = FontWeight.Thin,
             color = textColor,
             textAlign = TextAlign.Center,
-            letterSpacing = 8.sp
+            letterSpacing = 4.sp
         )
     }
 }

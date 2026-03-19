@@ -6,7 +6,7 @@ data class TimeConfig(
     val longitude: Double = 10.0,
     // Fixed times in minutes from midnight
     val fixedSunrise: Int = 390,   // 06:30
-    val fixedSunset: Int = 1140,   // 19:00
+    val fixedSunset: Int = 1080,   // 18:00
     val dawnDuration: Int = 45,    // minutes
     val duskDuration: Int = 45,    // minutes
     // Computed boundaries (in minutes from midnight)

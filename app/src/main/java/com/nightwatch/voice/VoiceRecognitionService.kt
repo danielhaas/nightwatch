@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
@@ -21,6 +22,8 @@ class VoiceRecognitionService : Service() {
     private val helpDetector = HelpDetector()
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var isListening = false
+    private var audioManager: AudioManager? = null
+    private var originalVolume: Int = 0
 
     companion object {
         const val CHANNEL_ID = "nightwatch_voice"
@@ -51,6 +54,8 @@ class VoiceRecognitionService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        muteBeep()
         helpDetector.listener = object : HelpDetector.Listener {
             override fun onHelpDetected() {
                 onEmergencyDetected()
@@ -150,7 +155,19 @@ class VoiceRecognitionService : Service() {
         speechRecognizer?.stopListening()
         speechRecognizer?.destroy()
         speechRecognizer = null
+        unmuteBeep()
         scope.cancel()
+    }
+
+    private fun muteBeep() {
+        audioManager?.let { am ->
+            originalVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+            am.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
+        }
+    }
+
+    private fun unmuteBeep() {
+        audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume, 0)
     }
 
     private fun onEmergencyDetected() {
