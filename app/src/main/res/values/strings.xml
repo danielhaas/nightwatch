@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NightWatch</string>
+    <string name="voice_service_channel">NightWatch Spracherkennung</string>
+    <string name="voice_service_notification">Spracherkennung aktiv</string>
+    <string name="emergency_triggered">NOTRUF WIRD ABGESETZT</string>
+    <string name="no_upcoming_event">Keine anstehenden Termine</string>
+</resources>
