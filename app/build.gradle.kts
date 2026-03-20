@@ -8,17 +8,28 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.nightwatch"
+        applicationId = "com.nightwatch.infodisplay"
         minSdk = 21
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("../release-keystore.jks")
+            storePassword = "nightwatch2026"
+            keyAlias = "nightwatch"
+            keyPassword = "nightwatch2026"
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -61,6 +72,5 @@ dependencies {
     // OkHttp for REST calls
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    // JSON
-    implementation("org.json:json:20231013")
+    // JSON - using Android's built-in org.json
 }

@@ -17,3 +17,6 @@ bin/
 out/
 .navigation/
 *.log
+*.jks
+*.keystore
+keystore.properties
