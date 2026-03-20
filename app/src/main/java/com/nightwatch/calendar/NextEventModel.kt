@@ -1,5 +1,7 @@
 package com.nightwatch.calendar
 
+import com.nightwatch.model.Strings
+
 data class NextEventModel(
     val title: String,
     val startTimeMillis: Long,
@@ -8,7 +10,7 @@ data class NextEventModel(
 ) {
     fun countdownText(nowMillis: Long): String {
         val diffMillis = startTimeMillis - nowMillis
-        if (diffMillis <= 0) return "jetzt"
+        if (diffMillis <= 0) return Strings.get("now")
 
         val totalMinutes = diffMillis / 60_000
         val hours = totalMinutes / 60
@@ -17,25 +19,16 @@ data class NextEventModel(
         val remainingHours = hours % 24
 
         return when {
-            totalMinutes < 60 -> "in $totalMinutes Minuten"
-            hours < 24 -> "in $hours Stunden $minutes Minuten"
-            else -> "in $days Tagen $remainingHours Stunden"
+            totalMinutes < 60 -> Strings.get("in_minutes", totalMinutes)
+            hours < 24 -> Strings.get("in_hours_minutes", hours, minutes)
+            else -> Strings.get("in_days_hours", days, remainingHours)
         }
     }
 
     fun weekdayName(): String {
         val cal = java.util.Calendar.getInstance()
         cal.timeInMillis = startTimeMillis
-        return when (cal.get(java.util.Calendar.DAY_OF_WEEK)) {
-            java.util.Calendar.MONDAY -> "Montag"
-            java.util.Calendar.TUESDAY -> "Dienstag"
-            java.util.Calendar.WEDNESDAY -> "Mittwoch"
-            java.util.Calendar.THURSDAY -> "Donnerstag"
-            java.util.Calendar.FRIDAY -> "Freitag"
-            java.util.Calendar.SATURDAY -> "Samstag"
-            java.util.Calendar.SUNDAY -> "Sonntag"
-            else -> ""
-        }
+        return Strings.weekday(cal.get(java.util.Calendar.DAY_OF_WEEK))
     }
 
     fun startTimeFormatted(): String {

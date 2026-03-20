@@ -14,6 +14,8 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import com.nightwatch.emergency.EmergencyApiClient
+import com.nightwatch.model.AppSettings
+import com.nightwatch.model.Strings
 import kotlinx.coroutines.*
 
 class VoiceRecognitionService : Service() {
@@ -24,6 +26,7 @@ class VoiceRecognitionService : Service() {
     private var isListening = false
     private var audioManager: AudioManager? = null
     private var originalVolume: Int = 0
+    private var speechLanguage: String = "de-DE"
 
     companion object {
         const val CHANNEL_ID = "nightwatch_voice"
@@ -31,10 +34,20 @@ class VoiceRecognitionService : Service() {
         const val ACTION_START = "com.nightwatch.START_LISTENING"
         const val ACTION_STOP = "com.nightwatch.STOP_LISTENING"
         const val ACTION_EMERGENCY = "com.nightwatch.EMERGENCY_DETECTED"
+        const val ACTION_UPDATE_SETTINGS = "com.nightwatch.UPDATE_VOICE_SETTINGS"
+        const val EXTRA_TRIGGER_WORD = "trigger_word"
+        const val EXTRA_TRIGGER_COUNT = "trigger_count"
+        const val EXTRA_SPEECH_LANGUAGE = "speech_language"
+        const val EXTRA_API_ENDPOINT = "api_endpoint"
 
         fun start(context: Context) {
+            val settings = AppSettings.load(context)
             val intent = Intent(context, VoiceRecognitionService::class.java).apply {
                 action = ACTION_START
+                putExtra(EXTRA_TRIGGER_WORD, settings.triggerWord)
+                putExtra(EXTRA_TRIGGER_COUNT, settings.triggerRepetitions)
+                putExtra(EXTRA_SPEECH_LANGUAGE, settings.language.speechCode)
+                putExtra(EXTRA_API_ENDPOINT, settings.apiEndpoint)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
@@ -46,6 +59,17 @@ class VoiceRecognitionService : Service() {
         fun stop(context: Context) {
             val intent = Intent(context, VoiceRecognitionService::class.java).apply {
                 action = ACTION_STOP
+            }
+            context.startService(intent)
+        }
+
+        fun updateSettings(context: Context, settings: AppSettings) {
+            val intent = Intent(context, VoiceRecognitionService::class.java).apply {
+                action = ACTION_UPDATE_SETTINGS
+                putExtra(EXTRA_TRIGGER_WORD, settings.triggerWord)
+                putExtra(EXTRA_TRIGGER_COUNT, settings.triggerRepetitions)
+                putExtra(EXTRA_SPEECH_LANGUAGE, settings.language.speechCode)
+                putExtra(EXTRA_API_ENDPOINT, settings.apiEndpoint)
             }
             context.startService(intent)
         }
@@ -64,6 +88,9 @@ class VoiceRecognitionService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Apply settings from intent
+        intent?.let { applySettings(it) }
+
         when (intent?.action) {
             ACTION_START -> {
                 startForeground(NOTIFICATION_ID, createNotification())
@@ -74,8 +101,28 @@ class VoiceRecognitionService : Service() {
                 stopForeground(true)
                 stopSelf()
             }
+            ACTION_UPDATE_SETTINGS -> {
+                // Restart listening with new language if needed
+                if (isListening) {
+                    speechRecognizer?.stopListening()
+                    speechRecognizer?.destroy()
+                    speechRecognizer = null
+                    speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+                        setRecognitionListener(createRecognitionListener())
+                    }
+                    startRecognition()
+                }
+            }
         }
         return START_STICKY
+    }
+
+    private fun applySettings(intent: Intent) {
+        intent.getStringExtra(EXTRA_TRIGGER_WORD)?.let { helpDetector.triggerWord = it }
+        val count = intent.getIntExtra(EXTRA_TRIGGER_COUNT, -1)
+        if (count > 0) helpDetector.requiredCount = count
+        intent.getStringExtra(EXTRA_SPEECH_LANGUAGE)?.let { speechLanguage = it }
+        intent.getStringExtra(EXTRA_API_ENDPOINT)?.let { EmergencyApiClient.baseUrl = it }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -94,14 +141,13 @@ class VoiceRecognitionService : Service() {
     private fun startRecognition() {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "de-DE")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, speechLanguage)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
         }
         try {
             speechRecognizer?.startListening(intent)
         } catch (e: Exception) {
-            // Retry after delay
             restartListeningDelayed()
         }
     }
@@ -114,7 +160,6 @@ class VoiceRecognitionService : Service() {
         override fun onEndOfSpeech() {}
 
         override fun onError(error: Int) {
-            // Restart listening on error (common with SpeechRecognizer)
             if (isListening) {
                 restartListeningDelayed()
             }
@@ -125,7 +170,6 @@ class VoiceRecognitionService : Service() {
             matches?.forEach { text ->
                 helpDetector.processText(text)
             }
-            // Restart to continue listening
             if (isListening) {
                 restartListeningDelayed()
             }
@@ -171,11 +215,9 @@ class VoiceRecognitionService : Service() {
     }
 
     private fun onEmergencyDetected() {
-        // Send broadcast to activity
         val intent = Intent(ACTION_EMERGENCY)
         sendBroadcast(intent)
 
-        // Send emergency API call
         scope.launch(Dispatchers.IO) {
             EmergencyApiClient.sendEmergency()
         }
@@ -185,10 +227,10 @@ class VoiceRecognitionService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "NightWatch Spracherkennung",
+                Strings.get("voice_recognition"),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Dauerhaftes Zuhoeren fuer Notruf-Erkennung"
+                description = Strings.get("voice_listening")
                 setShowBadge(false)
             }
             val manager = getSystemService(NotificationManager::class.java)
@@ -205,7 +247,7 @@ class VoiceRecognitionService : Service() {
         }
         return builder
             .setContentTitle("NightWatch")
-            .setContentText("Spracherkennung aktiv")
+            .setContentText(Strings.get("voice_active"))
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setOngoing(true)
             .build()

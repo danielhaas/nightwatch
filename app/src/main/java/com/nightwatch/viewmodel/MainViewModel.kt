@@ -5,10 +5,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nightwatch.calendar.CalendarRepository
 import com.nightwatch.calendar.NextEventModel
-import com.nightwatch.model.DayNightState
-import com.nightwatch.model.TimeConfig
+import com.nightwatch.model.*
 import com.nightwatch.util.SunCalculator
 import com.nightwatch.util.TimeProvider
+import com.nightwatch.voice.VoiceRecognitionService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +24,9 @@ data class MainUiState(
     val emergencyActive: Boolean = false,
     val emergencyMessage: String = "",
     val calendarPermissionGranted: Boolean = false,
-    val voiceListening: Boolean = false
+    val voiceListening: Boolean = false,
+    val settings: AppSettings = AppSettings(),
+    val showSettings: Boolean = false
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -35,7 +37,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val calendarRepository = CalendarRepository(application)
 
     init {
+        loadSettings()
         startTimeUpdates()
+    }
+
+    private fun loadSettings() {
+        val settings = AppSettings.load(getApplication())
+        Strings.setLanguage(settings.language)
+        _uiState.value = _uiState.value.copy(
+            settings = settings,
+            timeConfig = settings.toTimeConfig()
+        )
     }
 
     private fun startTimeUpdates() {
@@ -104,5 +116,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setVoiceListening(active: Boolean) {
         _uiState.value = _uiState.value.copy(voiceListening = active)
+    }
+
+    fun showSettings() {
+        _uiState.value = _uiState.value.copy(showSettings = true)
+    }
+
+    fun hideSettings() {
+        _uiState.value = _uiState.value.copy(showSettings = false)
+    }
+
+    fun updateSettings(newSettings: AppSettings) {
+        val app = getApplication<Application>()
+        AppSettings.save(app, newSettings)
+        Strings.setLanguage(newSettings.language)
+
+        val timeConfig = if (newSettings.useRealSunTimes) {
+            val sunTimes = SunCalculator.calculateForToday(newSettings.latitude, newSettings.longitude)
+            TimeConfig.withSunTimes(sunTimes.sunriseMinutes, sunTimes.sunsetMinutes)
+        } else {
+            newSettings.toTimeConfig()
+        }
+
+        _uiState.value = _uiState.value.copy(
+            settings = newSettings,
+            timeConfig = timeConfig
+        )
+        updateTime()
+
+        // Update voice service if running
+        if (_uiState.value.voiceListening) {
+            if (newSettings.voiceDetectionEnabled) {
+                VoiceRecognitionService.updateSettings(app, newSettings)
+            } else {
+                VoiceRecognitionService.stop(app)
+                setVoiceListening(false)
+            }
+        }
     }
 }

@@ -1,14 +1,16 @@
 package com.nightwatch.voice
 
 /**
- * Detects the emergency phrase "Hilfe, Hilfe, Hilfe" (3x "Hilfe").
- * Tracks occurrences within a time window.
+ * Detects the emergency trigger word repeated N times.
+ * Configurable trigger word and repetition count.
  */
-class HelpDetector {
+class HelpDetector(
+    var triggerWord: String = "hilfe",
+    var requiredCount: Int = 3
+) {
 
     private val detections = mutableListOf<Long>()
     private val timeWindowMs = 10_000L // 10 second window
-    private val requiredCount = 3
 
     interface Listener {
         fun onHelpDetected()
@@ -22,20 +24,19 @@ class HelpDetector {
      */
     fun processText(text: String): Boolean {
         val lower = text.lowercase()
+        val word = triggerWord.lowercase()
 
-        // Count "hilfe" occurrences in this recognition result
-        val hilfeCount = "hilfe".toRegex().findAll(lower).count()
+        val wordCount = word.toRegex(RegexOption.LITERAL).findAll(lower).count()
 
-        if (hilfeCount >= 3) {
-            // Three or more in a single utterance
+        if (wordCount >= requiredCount) {
             listener?.onHelpDetected()
             detections.clear()
             return true
         }
 
-        if (hilfeCount > 0) {
+        if (wordCount > 0) {
             val now = System.currentTimeMillis()
-            repeat(hilfeCount) {
+            repeat(wordCount) {
                 detections.add(now)
             }
 

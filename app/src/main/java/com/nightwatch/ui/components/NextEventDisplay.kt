@@ -10,6 +10,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nightwatch.calendar.NextEventModel
+import com.nightwatch.model.Strings
 import kotlinx.coroutines.delay
 
 @Composable
@@ -48,7 +49,7 @@ fun NextEventDisplay(
         horizontalAlignment = Alignment.Start
     ) {
         Text(
-            text = "N\u00e4chster Termin",
+            text = Strings.get("next_event"),
             fontSize = labelSize,
             color = Color.White.copy(alpha = 0.6f),
             letterSpacing = 2.sp

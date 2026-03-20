@@ -11,6 +11,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nightwatch.model.DayNightState
+import com.nightwatch.model.Strings
 import java.util.Calendar
 
 @Composable
@@ -25,16 +26,7 @@ fun ClockDisplay(
         DayNightState.NIGHT -> Color.White.copy(alpha = 0.85f)
     }
 
-    val weekday = when (Calendar.getInstance().get(Calendar.DAY_OF_WEEK)) {
-        Calendar.MONDAY -> "Montag"
-        Calendar.TUESDAY -> "Dienstag"
-        Calendar.WEDNESDAY -> "Mittwoch"
-        Calendar.THURSDAY -> "Donnerstag"
-        Calendar.FRIDAY -> "Freitag"
-        Calendar.SATURDAY -> "Samstag"
-        Calendar.SUNDAY -> "Sonntag"
-        else -> ""
-    }
+    val weekday = Strings.weekday(Calendar.getInstance().get(Calendar.DAY_OF_WEEK))
 
     Box(
         modifier = modifier

@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nightwatch.model.Strings
 
 @Composable
 fun EmergencyOverlay(
@@ -44,7 +45,7 @@ fun EmergencyOverlay(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "NOTRUF",
+                text = Strings.get("emergency"),
                 fontSize = 64.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
@@ -52,7 +53,7 @@ fun EmergencyOverlay(
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "NOTRUF WIRD ABGESETZT",
+                text = Strings.get("emergency_sending"),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.White,
@@ -69,7 +70,7 @@ fun EmergencyOverlay(
             }
             Spacer(modifier = Modifier.height(40.dp))
             Text(
-                text = "Tippen zum Abbrechen",
+                text = Strings.get("tap_to_cancel"),
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center

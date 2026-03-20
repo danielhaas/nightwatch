@@ -4,6 +4,7 @@ import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
 import android.provider.CalendarContract
+import com.nightwatch.model.Strings
 
 class CalendarRepository(private val context: Context) {
 
@@ -39,7 +40,7 @@ class CalendarRepository(private val context: Context) {
 
             cursor?.let {
                 if (it.moveToFirst()) {
-                    val title = it.getString(0) ?: "Unbenannter Termin"
+                    val title = it.getString(0) ?: Strings.get("unnamed_event")
                     val dtStart = it.getLong(1)
                     val dtEnd = it.getLong(2)
                     val allDay = it.getInt(3) == 1

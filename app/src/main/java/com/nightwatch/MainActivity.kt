@@ -16,6 +16,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import com.nightwatch.emergency.EmergencyMockServer
+import com.nightwatch.model.AppSettings
+import com.nightwatch.model.Strings
 import com.nightwatch.ui.screens.MainScreen
 import com.nightwatch.ui.theme.NightWatchTheme
 import com.nightwatch.viewmodel.MainViewModel
@@ -29,7 +31,7 @@ class MainActivity : ComponentActivity() {
     private val emergencyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == VoiceRecognitionService.ACTION_EMERGENCY) {
-                viewModel.triggerEmergency("Sprachbefehl erkannt: Hilfe, Hilfe, Hilfe")
+                viewModel.triggerEmergency(Strings.get("voice_command_detected"))
             }
         }
     }
@@ -44,13 +46,20 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            VoiceRecognitionService.start(this)
-            viewModel.setVoiceListening(true)
+            val settings = AppSettings.load(this)
+            if (settings.voiceDetectionEnabled) {
+                VoiceRecognitionService.start(this)
+                viewModel.setVoiceListening(true)
+            }
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Load settings and apply language before anything else
+        val settings = AppSettings.load(this)
+        Strings.setLanguage(settings.language)
 
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
 
@@ -105,8 +114,11 @@ class MainActivity : ComponentActivity() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
             == PackageManager.PERMISSION_GRANTED
         ) {
-            VoiceRecognitionService.start(this)
-            viewModel.setVoiceListening(true)
+            val settings = AppSettings.load(this)
+            if (settings.voiceDetectionEnabled) {
+                VoiceRecognitionService.start(this)
+                viewModel.setVoiceListening(true)
+            }
         } else {
             audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
