@@ -17,3 +17,11 @@
 
 # Keep voice service (started via Intent)
 -keep class com.nightwatch.voice.VoiceRecognitionService { *; }
+
+# Keep JavaMail
+-dontwarn javax.mail.**
+-dontwarn com.sun.mail.**
+-dontwarn javax.activation.**
+-keep class javax.mail.** { *; }
+-keep class com.sun.mail.** { *; }
+-keep class javax.activation.** { *; }

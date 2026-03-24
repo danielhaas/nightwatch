@@ -157,6 +157,64 @@ object Strings {
             Language.FR to "Longitude", Language.IT to "Longitudine"
         ),
 
+        // Email
+        "email_settings" to mapOf(
+            Language.DE to "E-Mail-Benachrichtigung", Language.EN to "Email Notification",
+            Language.FR to "Notification par e-mail", Language.IT to "Notifica e-mail"
+        ),
+        "email_enabled" to mapOf(
+            Language.DE to "E-Mail senden", Language.EN to "Send Email",
+            Language.FR to "Envoyer un e-mail", Language.IT to "Invia e-mail"
+        ),
+        "email_recipient" to mapOf(
+            Language.DE to "Empf\u00e4nger", Language.EN to "Recipient",
+            Language.FR to "Destinataire", Language.IT to "Destinatario"
+        ),
+        "email_sender" to mapOf(
+            Language.DE to "Absender-E-Mail", Language.EN to "Sender Email",
+            Language.FR to "E-mail exp\u00e9diteur", Language.IT to "E-mail mittente"
+        ),
+        "email_password" to mapOf(
+            Language.DE to "App-Passwort", Language.EN to "App Password",
+            Language.FR to "Mot de passe app", Language.IT to "Password app"
+        ),
+        "smtp_host" to mapOf(
+            Language.DE to "SMTP-Server", Language.EN to "SMTP Server",
+            Language.FR to "Serveur SMTP", Language.IT to "Server SMTP"
+        ),
+        "smtp_port" to mapOf(
+            Language.DE to "SMTP-Port", Language.EN to "SMTP Port",
+            Language.FR to "Port SMTP", Language.IT to "Porta SMTP"
+        ),
+        "emergency_email_body" to mapOf(
+            Language.DE to "ACHTUNG: Ein Notruf wurde vom NightWatch-Ger\u00e4t ausgel\u00f6st!",
+            Language.EN to "ALERT: An emergency call was triggered from the NightWatch device!",
+            Language.FR to "ALERTE: Un appel d'urgence a \u00e9t\u00e9 d\u00e9clench\u00e9 depuis l'appareil NightWatch!",
+            Language.IT to "ATTENZIONE: Una chiamata di emergenza \u00e8 stata attivata dal dispositivo NightWatch!"
+        ),
+        "emergency_email_time" to mapOf(
+            Language.DE to "Zeitpunkt", Language.EN to "Time",
+            Language.FR to "Heure", Language.IT to "Ora"
+        ),
+        "emergency_email_device" to mapOf(
+            Language.DE to "Ger\u00e4t", Language.EN to "Device",
+            Language.FR to "Appareil", Language.IT to "Dispositivo"
+        ),
+        "emergency_code_label" to mapOf(
+            Language.DE to "Code", Language.EN to "Code",
+            Language.FR to "Code", Language.IT to "Codice"
+        ),
+        "emergency_code" to mapOf(
+            Language.DE to "Notruf-Code", Language.EN to "Emergency Code",
+            Language.FR to "Code d'urgence", Language.IT to "Codice emergenza"
+        ),
+        "emergency_email_footer" to mapOf(
+            Language.DE to "Bitte pr\u00fcfen Sie sofort, ob Hilfe ben\u00f6tigt wird.",
+            Language.EN to "Please check immediately if help is needed.",
+            Language.FR to "Veuillez v\u00e9rifier imm\u00e9diatement si de l'aide est n\u00e9cessaire.",
+            Language.IT to "Si prega di verificare immediatamente se \u00e8 necessario aiuto."
+        ),
+
         // Mock server
         "emergency_received" to mapOf(
             Language.DE to "Notruf empfangen. Hilfe ist unterwegs.",

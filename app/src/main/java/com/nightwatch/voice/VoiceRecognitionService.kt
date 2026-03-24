@@ -14,6 +14,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import com.nightwatch.emergency.EmergencyApiClient
+import com.nightwatch.emergency.EmergencyEmailSender
 import com.nightwatch.model.AppSettings
 import com.nightwatch.model.Strings
 import kotlinx.coroutines.*
@@ -187,8 +188,18 @@ class VoiceRecognitionService : Service() {
 
     private fun restartListeningDelayed() {
         scope.launch {
-            delay(500)
+            // Destroy old recognizer to free memory before restarting
+            try {
+                speechRecognizer?.stopListening()
+                speechRecognizer?.destroy()
+            } catch (e: Exception) { /* ignore */ }
+            speechRecognizer = null
+
+            delay(1000)
             if (isListening) {
+                speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this@VoiceRecognitionService).apply {
+                    setRecognitionListener(createRecognitionListener())
+                }
                 startRecognition()
             }
         }
@@ -220,6 +231,22 @@ class VoiceRecognitionService : Service() {
 
         scope.launch(Dispatchers.IO) {
             EmergencyApiClient.sendEmergency()
+        }
+
+        // Send emergency email if configured
+        val settings = AppSettings.load(this)
+        if (settings.emailEnabled && settings.emailRecipient.isNotBlank()) {
+            scope.launch(Dispatchers.IO) {
+                val config = EmergencyEmailSender.EmailConfig(
+                    smtpHost = settings.smtpHost,
+                    smtpPort = settings.smtpPort,
+                    senderEmail = settings.emailSender,
+                    senderPassword = settings.emailPassword,
+                    recipientEmail = settings.emailRecipient,
+                    emergencyCode = settings.emergencyCode
+                )
+                EmergencyEmailSender.sendEmergencyEmail(config)
+            }
         }
     }
 

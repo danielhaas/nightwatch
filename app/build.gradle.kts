@@ -8,7 +8,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.nightwatch.infodisplay"
+        applicationId = "com.nightwatch"
         minSdk = 21
         targetSdk = 34
         versionCode = 1
@@ -49,6 +49,12 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
     }
+
+    packaging {
+        resources {
+            excludes += setOf("META-INF/NOTICE.md", "META-INF/LICENSE.md")
+        }
+    }
 }
 
 dependencies {
@@ -71,6 +77,10 @@ dependencies {
 
     // OkHttp for REST calls
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Email (SMTP)
+    implementation("com.sun.mail:android-mail:1.6.7")
+    implementation("com.sun.mail:android-activation:1.6.7")
 
     // JSON - using Android's built-in org.json
 }

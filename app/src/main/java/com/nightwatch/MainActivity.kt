@@ -66,8 +66,8 @@ class MainActivity : ComponentActivity() {
         setupFullscreen()
         setupWakeLock()
 
-        // Start mock server for development
-        mockServer = EmergencyMockServer().also { it.start() }
+        // Mock server only for development/debugging
+        // mockServer = EmergencyMockServer().also { it.start() }
 
         setContent {
             NightWatchTheme {

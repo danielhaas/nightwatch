@@ -12,6 +12,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,11 +20,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nightwatch.emergency.EmergencyEmailSender
 import com.nightwatch.model.AppSettings
 import com.nightwatch.model.Language
 import com.nightwatch.model.Strings
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -33,6 +38,8 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     var current by remember { mutableStateOf(settings) }
+    var testEmailStatus by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
 
     Box(
         modifier = modifier
@@ -175,6 +182,101 @@ fun SettingsScreen(
                 onValueChange = { current = current.copy(apiEndpoint = it) },
                 keyboardType = KeyboardType.Uri
             )
+
+            Spacer(modifier = Modifier.height(4.dp))
+            NumberInputRow(
+                label = Strings.get("emergency_code"),
+                value = current.emergencyCode,
+                onValueChange = { current = current.copy(emergencyCode = it) },
+                keyboardType = KeyboardType.Text
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // Email settings
+            SectionHeader(Strings.get("email_settings"))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            SettingsRow(
+                label = Strings.get("email_enabled"),
+                toggle = current.emailEnabled,
+                onToggle = { current = current.copy(emailEnabled = it) }
+            )
+
+            if (current.emailEnabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+                NumberInputRow(
+                    label = Strings.get("email_recipient"),
+                    value = current.emailRecipient,
+                    onValueChange = { current = current.copy(emailRecipient = it) },
+                    keyboardType = KeyboardType.Email
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                NumberInputRow(
+                    label = Strings.get("email_sender"),
+                    value = current.emailSender,
+                    onValueChange = { current = current.copy(emailSender = it) },
+                    keyboardType = KeyboardType.Email
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                PasswordInputRow(
+                    label = Strings.get("email_password"),
+                    value = current.emailPassword,
+                    onValueChange = { current = current.copy(emailPassword = it) }
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                NumberInputRow(
+                    label = Strings.get("smtp_host"),
+                    value = current.smtpHost,
+                    onValueChange = { current = current.copy(smtpHost = it) },
+                    keyboardType = KeyboardType.Text
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                NumberInputRow(
+                    label = Strings.get("smtp_port"),
+                    value = current.smtpPort.toString(),
+                    onValueChange = { current = current.copy(smtpPort = it.toIntOrNull() ?: current.smtpPort) }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Test email button
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF64B5F6))
+                        .clickable {
+                            testEmailStatus = "..."
+                            coroutineScope.launch(Dispatchers.IO) {
+                                val config = EmergencyEmailSender.EmailConfig(
+                                    smtpHost = current.smtpHost,
+                                    smtpPort = current.smtpPort,
+                                    senderEmail = current.emailSender,
+                                    senderPassword = current.emailPassword,
+                                    recipientEmail = current.emailRecipient,
+                                    emergencyCode = current.emergencyCode
+                                )
+                                val success = EmergencyEmailSender.sendEmergencyEmail(config)
+                                testEmailStatus = if (success) "\u2713" else "\u2717"
+                            }
+                        }
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                ) {
+                    Text(
+                        text = "Test E-Mail",
+                        fontSize = 16.sp,
+                        color = Color.Black,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                if (testEmailStatus.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = testEmailStatus,
+                        fontSize = 18.sp,
+                        color = if (testEmailStatus == "\u2713") Color(0xFF4CAF50) else if (testEmailStatus == "\u2717") Color.Red else Color.White.copy(alpha = 0.6f)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
         }
@@ -320,6 +422,44 @@ private fun NumberInputRow(
                 color = Color.White
             ),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            modifier = Modifier
+                .width(200.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color(0xFF2A2A4E))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            singleLine = true
+        )
+    }
+}
+
+@Composable
+private fun PasswordInputRow(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            fontSize = 18.sp,
+            color = Color.White.copy(alpha = 0.85f),
+            modifier = Modifier.weight(1f)
+        )
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            textStyle = TextStyle(
+                fontSize = 18.sp,
+                color = Color.White
+            ),
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             modifier = Modifier
                 .width(200.dp)
                 .clip(RoundedCornerShape(4.dp))
