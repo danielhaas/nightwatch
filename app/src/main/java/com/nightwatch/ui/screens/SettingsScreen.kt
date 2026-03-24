@@ -235,7 +235,8 @@ fun SettingsScreen(
                                         senderEmail = current.emailSender,
                                         senderPassword = current.emailPassword,
                                         recipientEmail = current.emailRecipient,
-                                        emergencyCode = current.watchdogCode
+                                        emergencyCode = current.watchdogCode,
+                                        useSsl = current.smtpUseSsl
                                     )
                                     val success = EmergencyEmailSender.sendWatchdogEmail(config)
                                     testWatchdogStatus = if (success) "\u2713" else "\u2717"
@@ -307,6 +308,12 @@ fun SettingsScreen(
                     value = current.smtpPort.toString(),
                     onValueChange = { current = current.copy(smtpPort = it.toIntOrNull() ?: current.smtpPort) }
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+                SettingsRow(
+                    label = "SSL/TLS",
+                    toggle = current.smtpUseSsl,
+                    onToggle = { current = current.copy(smtpUseSsl = it) }
+                )
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Test email button
@@ -323,7 +330,8 @@ fun SettingsScreen(
                                     senderEmail = current.emailSender,
                                     senderPassword = current.emailPassword,
                                     recipientEmail = current.emailRecipient,
-                                    emergencyCode = current.emergencyCode
+                                    emergencyCode = current.emergencyCode,
+                                    useSsl = current.smtpUseSsl
                                 )
                                 val success = EmergencyEmailSender.sendEmergencyEmail(config)
                                 testEmailStatus = if (success) "\u2713" else "\u2717"
@@ -421,9 +429,7 @@ private fun TimeInputRow(
     minutes: Int,
     onMinutesChange: (Int) -> Unit
 ) {
-    val hours = minutes / 60
-    val mins = minutes % 60
-    var text by remember(minutes) { mutableStateOf("%02d:%02d".format(hours, mins)) }
+    var text by remember { mutableStateOf("%02d:%02d".format(minutes / 60, minutes % 60)) }
 
     Row(
         modifier = Modifier
@@ -440,13 +446,16 @@ private fun TimeInputRow(
         BasicTextField(
             value = text,
             onValueChange = { newVal ->
-                text = newVal
-                val parts = newVal.split(":")
-                if (parts.size == 2) {
-                    val h = parts[0].toIntOrNull()
-                    val m = parts[1].toIntOrNull()
-                    if (h != null && m != null && h in 0..23 && m in 0..59) {
-                        onMinutesChange(h * 60 + m)
+                // Only allow digits and colon, max 5 chars (HH:MM)
+                if (newVal.length <= 5 && newVal.all { it.isDigit() || it == ':' }) {
+                    text = newVal
+                    val parts = newVal.split(":")
+                    if (parts.size == 2) {
+                        val h = parts[0].toIntOrNull()
+                        val m = parts[1].toIntOrNull()
+                        if (h != null && m != null && h in 0..23 && m in 0..59) {
+                            onMinutesChange(h * 60 + m)
+                        }
                     }
                 }
             },

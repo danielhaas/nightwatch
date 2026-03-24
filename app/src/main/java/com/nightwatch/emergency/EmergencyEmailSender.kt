@@ -15,18 +15,27 @@ object EmergencyEmailSender {
         val senderEmail: String,
         val senderPassword: String,
         val recipientEmail: String,
-        val emergencyCode: String = ""
+        val emergencyCode: String = "",
+        val useSsl: Boolean = false
     )
 
     private fun createSession(config: EmailConfig): Session {
         val props = Properties().apply {
             put("mail.smtp.auth", "true")
-            put("mail.smtp.starttls.enable", "true")
             put("mail.smtp.host", config.smtpHost)
             put("mail.smtp.port", config.smtpPort.toString())
-            put("mail.smtp.ssl.trust", config.smtpHost)
             put("mail.smtp.connectiontimeout", "10000")
             put("mail.smtp.timeout", "10000")
+            if (config.useSsl) {
+                // Direct SSL/TLS (typically port 465)
+                put("mail.smtp.ssl.enable", "true")
+                put("mail.smtp.socketFactory.port", config.smtpPort.toString())
+                put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory")
+            } else {
+                // STARTTLS (typically port 587)
+                put("mail.smtp.starttls.enable", "true")
+            }
+            put("mail.smtp.ssl.trust", config.smtpHost)
         }
         return Session.getInstance(props, object : Authenticator() {
             override fun getPasswordAuthentication(): PasswordAuthentication {

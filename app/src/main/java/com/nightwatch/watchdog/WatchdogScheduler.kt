@@ -53,7 +53,8 @@ class WatchdogScheduler(private val context: Context) {
                     senderEmail = settings.emailSender,
                     senderPassword = settings.emailPassword,
                     recipientEmail = settings.emailRecipient,
-                    emergencyCode = settings.watchdogCode
+                    emergencyCode = settings.watchdogCode,
+                    useSsl = settings.smtpUseSsl
                 )
                 EmergencyEmailSender.sendWatchdogEmail(config)
             }

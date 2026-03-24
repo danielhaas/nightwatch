@@ -243,7 +243,8 @@ class VoiceRecognitionService : Service() {
                     senderEmail = settings.emailSender,
                     senderPassword = settings.emailPassword,
                     recipientEmail = settings.emailRecipient,
-                    emergencyCode = settings.emergencyCode
+                    emergencyCode = settings.emergencyCode,
+                    useSsl = settings.smtpUseSsl
                 )
                 EmergencyEmailSender.sendEmergencyEmail(config)
             }
