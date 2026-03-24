@@ -9,6 +9,7 @@ import com.nightwatch.model.*
 import com.nightwatch.util.SunCalculator
 import com.nightwatch.util.TimeProvider
 import com.nightwatch.voice.VoiceRecognitionService
+import com.nightwatch.watchdog.WatchdogScheduler
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,10 +36,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<MainUiState> = _uiState
 
     private val calendarRepository = CalendarRepository(application)
+    private val watchdogScheduler = WatchdogScheduler(application)
 
     init {
         loadSettings()
         startTimeUpdates()
+        watchdogScheduler.start()
     }
 
     private fun loadSettings() {
@@ -143,6 +146,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             timeConfig = timeConfig
         )
         updateTime()
+
+        // Restart watchdog with new settings
+        if (newSettings.watchdogEnabled) {
+            watchdogScheduler.stop()
+            watchdogScheduler.start()
+        } else {
+            watchdogScheduler.stop()
+        }
 
         // Update voice service if running
         if (_uiState.value.voiceListening) {

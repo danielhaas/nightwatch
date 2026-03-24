@@ -193,6 +193,76 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
+            // Watchdog settings
+            SectionHeader(Strings.get("watchdog_settings"))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            SettingsRow(
+                label = Strings.get("watchdog_enabled"),
+                toggle = current.watchdogEnabled,
+                onToggle = { current = current.copy(watchdogEnabled = it) }
+            )
+
+            if (current.watchdogEnabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+                TimeInputRow(
+                    label = Strings.get("watchdog_time"),
+                    minutes = current.watchdogTimeMinutes,
+                    onMinutesChange = { current = current.copy(watchdogTimeMinutes = it) }
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                NumberInputRow(
+                    label = Strings.get("watchdog_code"),
+                    value = current.watchdogCode,
+                    onValueChange = { current = current.copy(watchdogCode = it) },
+                    keyboardType = KeyboardType.Text
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Test watchdog button
+                var testWatchdogStatus by remember { mutableStateOf("") }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF4CAF50))
+                            .clickable {
+                                testWatchdogStatus = "..."
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    val config = EmergencyEmailSender.EmailConfig(
+                                        smtpHost = current.smtpHost,
+                                        smtpPort = current.smtpPort,
+                                        senderEmail = current.emailSender,
+                                        senderPassword = current.emailPassword,
+                                        recipientEmail = current.emailRecipient,
+                                        emergencyCode = current.watchdogCode
+                                    )
+                                    val success = EmergencyEmailSender.sendWatchdogEmail(config)
+                                    testWatchdogStatus = if (success) "\u2713" else "\u2717"
+                                }
+                            }
+                            .padding(horizontal = 24.dp, vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = "Test Watchdog",
+                            fontSize = 16.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    if (testWatchdogStatus.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = testWatchdogStatus,
+                            fontSize = 18.sp,
+                            color = if (testWatchdogStatus == "\u2713") Color(0xFF4CAF50) else if (testWatchdogStatus == "\u2717") Color.Red else Color.White.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
             // Email settings
             SectionHeader(Strings.get("email_settings"))
             Spacer(modifier = Modifier.height(8.dp))

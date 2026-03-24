@@ -13,13 +13,16 @@ data class AppSettings(
     val triggerRepetitions: Int = 3,
     val apiEndpoint: String = "http://localhost:8080",
     val voiceDetectionEnabled: Boolean = true,
-    val emailEnabled: Boolean = true,
-    val emailRecipient: String = "daniel@haas.li",
-    val emailSender: String = "renatehaasbeck@gmail.com",
-    val emailPassword: String = "vygfbfynpsidyrck",
+    val emailEnabled: Boolean = false,
+    val emailRecipient: String = "",
+    val emailSender: String = "",
+    val emailPassword: String = "",
     val smtpHost: String = "smtp.gmail.com",
     val smtpPort: Int = 587,
-    val emergencyCode: String = "SB00;300495;A 001"
+    val emergencyCode: String = "SB00;300495;A 001",
+    val watchdogEnabled: Boolean = true,
+    val watchdogTimeMinutes: Int = 840,  // 14:00
+    val watchdogCode: String = "SB00;300495;A 002"
 ) {
     fun toTimeConfig(): TimeConfig {
         return if (useRealSunTimes) {
@@ -41,6 +44,10 @@ data class AppSettings(
 
         fun load(context: Context): AppSettings {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            // First launch: write defaults so settings persist across restarts
+            if (!prefs.contains("language")) {
+                save(context, AppSettings())
+            }
             return AppSettings(
                 language = Language.fromCode(prefs.getString("language", "de") ?: "de"),
                 useRealSunTimes = prefs.getBoolean("use_real_sun_times", false),
@@ -52,13 +59,16 @@ data class AppSettings(
                 triggerRepetitions = prefs.getInt("trigger_repetitions", 3),
                 apiEndpoint = prefs.getString("api_endpoint", "http://localhost:8080") ?: "http://localhost:8080",
                 voiceDetectionEnabled = prefs.getBoolean("voice_detection_enabled", true),
-                emailEnabled = prefs.getBoolean("email_enabled", true),
-                emailRecipient = prefs.getString("email_recipient", "daniel@haas.li") ?: "daniel@haas.li",
-                emailSender = prefs.getString("email_sender", "renatehaasbeck@gmail.com") ?: "renatehaasbeck@gmail.com",
-                emailPassword = prefs.getString("email_password", "vygfbfynpsidyrck") ?: "vygfbfynpsidyrck",
+                emailEnabled = prefs.getBoolean("email_enabled", false),
+                emailRecipient = prefs.getString("email_recipient", "") ?: "",
+                emailSender = prefs.getString("email_sender", "") ?: "",
+                emailPassword = prefs.getString("email_password", "") ?: "",
                 smtpHost = prefs.getString("smtp_host", "smtp.gmail.com") ?: "smtp.gmail.com",
                 smtpPort = prefs.getInt("smtp_port", 587),
-                emergencyCode = prefs.getString("emergency_code", "SB00;300495;A 001") ?: "SB00;300495;A 001"
+                emergencyCode = prefs.getString("emergency_code", "SB00;300495;A 001") ?: "SB00;300495;A 001",
+                watchdogEnabled = prefs.getBoolean("watchdog_enabled", true),
+                watchdogTimeMinutes = prefs.getInt("watchdog_time_minutes", 840),
+                watchdogCode = prefs.getString("watchdog_code", "SB00;300495;A 002") ?: "SB00;300495;A 002"
             )
         }
 
@@ -81,6 +91,9 @@ data class AppSettings(
                 putString("smtp_host", settings.smtpHost)
                 putInt("smtp_port", settings.smtpPort)
                 putString("emergency_code", settings.emergencyCode)
+                putBoolean("watchdog_enabled", settings.watchdogEnabled)
+                putInt("watchdog_time_minutes", settings.watchdogTimeMinutes)
+                putString("watchdog_code", settings.watchdogCode)
                 apply()
             }
         }

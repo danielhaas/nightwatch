@@ -200,6 +200,34 @@ object Strings {
             Language.DE to "Ger\u00e4t", Language.EN to "Device",
             Language.FR to "Appareil", Language.IT to "Dispositivo"
         ),
+        // Watchdog
+        "watchdog_settings" to mapOf(
+            Language.DE to "Watchdog (t\u00e4gliche Statusmeldung)", Language.EN to "Watchdog (daily status)",
+            Language.FR to "Watchdog (statut quotidien)", Language.IT to "Watchdog (stato giornaliero)"
+        ),
+        "watchdog_enabled" to mapOf(
+            Language.DE to "Watchdog aktiv", Language.EN to "Watchdog active",
+            Language.FR to "Watchdog actif", Language.IT to "Watchdog attivo"
+        ),
+        "watchdog_time" to mapOf(
+            Language.DE to "Sendezeit", Language.EN to "Send time",
+            Language.FR to "Heure d'envoi", Language.IT to "Ora di invio"
+        ),
+        "watchdog_code" to mapOf(
+            Language.DE to "Watchdog-Code", Language.EN to "Watchdog Code",
+            Language.FR to "Code watchdog", Language.IT to "Codice watchdog"
+        ),
+        "watchdog_email_subject" to mapOf(
+            Language.DE to "NightWatch - Status OK", Language.EN to "NightWatch - Status OK",
+            Language.FR to "NightWatch - Statut OK", Language.IT to "NightWatch - Stato OK"
+        ),
+        "watchdog_email_body" to mapOf(
+            Language.DE to "NightWatch ist aktiv und funktioniert einwandfrei.",
+            Language.EN to "NightWatch is active and running normally.",
+            Language.FR to "NightWatch est actif et fonctionne normalement.",
+            Language.IT to "NightWatch \u00e8 attivo e funziona normalmente."
+        ),
+
         "emergency_code_label" to mapOf(
             Language.DE to "Code", Language.EN to "Code",
             Language.FR to "Code", Language.IT to "Codice"
