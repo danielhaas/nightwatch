@@ -53,7 +53,7 @@ object EmergencyEmailSender {
             val message = MimeMessage(session).apply {
                 setFrom(InternetAddress(config.senderEmail, "NightWatch"))
                 setRecipient(Message.RecipientType.TO, InternetAddress(config.recipientEmail))
-                subject = "NightWatch - ${Strings.get("emergency")}! [${config.emergencyCode}]"
+                subject = config.emergencyCode
                 setText(
                     "${Strings.get("emergency_email_body")}\n\n" +
                     "${Strings.get("emergency_email_time")}: ${timestamp()}\n" +
@@ -76,7 +76,7 @@ object EmergencyEmailSender {
             val message = MimeMessage(session).apply {
                 setFrom(InternetAddress(config.senderEmail, "NightWatch"))
                 setRecipient(Message.RecipientType.TO, InternetAddress(config.recipientEmail))
-                subject = "${Strings.get("watchdog_email_subject")} [${config.emergencyCode}]"
+                subject = config.emergencyCode
                 setText(
                     "${Strings.get("watchdog_email_body")}\n\n" +
                     "${Strings.get("emergency_email_time")}: ${timestamp()}\n" +
