@@ -47,6 +47,10 @@ class AudioFeedback(private val context: Context) : TextToSpeech.OnInitListener 
         tts?.speak(text, TextToSpeech.QUEUE_ADD, null)
     }
 
+    fun announceEmergencySending() {
+        speak(Strings.get("audio_emergency_sending"))
+    }
+
     fun announceEmergencySent() {
         speak(Strings.get("audio_emergency_sent"))
     }

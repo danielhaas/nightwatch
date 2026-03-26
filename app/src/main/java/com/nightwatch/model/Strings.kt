@@ -244,6 +244,12 @@ object Strings {
         ),
 
         // Audio feedback
+        "audio_emergency_sending" to mapOf(
+            Language.DE to "Notruf wird gesendet.",
+            Language.EN to "Sending emergency call.",
+            Language.FR to "Envoi de l'appel d'urgence.",
+            Language.IT to "Invio della chiamata di emergenza."
+        ),
         "audio_emergency_sent" to mapOf(
             Language.DE to "Notruf wurde erfolgreich gesendet.",
             Language.EN to "Emergency call was sent successfully.",

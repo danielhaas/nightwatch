@@ -1,6 +1,9 @@
 package com.nightwatch.model
 
 import android.content.Context
+import android.os.Environment
+import org.json.JSONObject
+import java.io.File
 
 data class AppSettings(
     val language: Language = Language.DE,
@@ -42,13 +45,27 @@ data class AppSettings(
 
     companion object {
         private const val PREFS_NAME = "nightwatch_settings"
+        private const val BACKUP_FILENAME = "nightwatch_settings.json"
+
+        private fun backupFile(): File {
+            val dir = File(Environment.getExternalStorageDirectory(), "NightWatch")
+            dir.mkdirs()
+            return File(dir, BACKUP_FILENAME)
+        }
 
         fun load(context: Context): AppSettings {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            // First launch: write defaults so settings persist across restarts
+
+            // If SharedPreferences are empty, try restoring from backup
             if (!prefs.contains("language")) {
+                val restored = restoreFromBackup()
+                if (restored != null) {
+                    save(context, restored)
+                    return restored
+                }
                 save(context, AppSettings())
             }
+
             return AppSettings(
                 language = Language.fromCode(prefs.getString("language", "de") ?: "de"),
                 useRealSunTimes = prefs.getBoolean("use_real_sun_times", false),
@@ -75,6 +92,7 @@ data class AppSettings(
         }
 
         fun save(context: Context, settings: AppSettings) {
+            // Save to SharedPreferences
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().apply {
                 putString("language", settings.language.code)
                 putBoolean("use_real_sun_times", settings.useRealSunTimes)
@@ -98,6 +116,73 @@ data class AppSettings(
                 putInt("watchdog_time_minutes", settings.watchdogTimeMinutes)
                 putString("watchdog_code", settings.watchdogCode)
                 apply()
+            }
+
+            // Backup to external storage (survives reinstalls)
+            saveToBackup(settings)
+        }
+
+        private fun saveToBackup(settings: AppSettings) {
+            try {
+                val json = JSONObject().apply {
+                    put("language", settings.language.code)
+                    put("use_real_sun_times", settings.useRealSunTimes)
+                    put("fixed_sunrise", settings.fixedSunrise)
+                    put("fixed_sunset", settings.fixedSunset)
+                    put("latitude", settings.latitude)
+                    put("longitude", settings.longitude)
+                    put("trigger_word", settings.triggerWord)
+                    put("trigger_repetitions", settings.triggerRepetitions)
+                    put("api_endpoint", settings.apiEndpoint)
+                    put("voice_detection_enabled", settings.voiceDetectionEnabled)
+                    put("email_enabled", settings.emailEnabled)
+                    put("email_recipient", settings.emailRecipient)
+                    put("email_sender", settings.emailSender)
+                    put("email_password", settings.emailPassword)
+                    put("smtp_host", settings.smtpHost)
+                    put("smtp_port", settings.smtpPort)
+                    put("smtp_use_ssl", settings.smtpUseSsl)
+                    put("emergency_code", settings.emergencyCode)
+                    put("watchdog_enabled", settings.watchdogEnabled)
+                    put("watchdog_time_minutes", settings.watchdogTimeMinutes)
+                    put("watchdog_code", settings.watchdogCode)
+                }
+                backupFile().writeText(json.toString(2))
+            } catch (e: Exception) {
+                // Backup is best-effort
+            }
+        }
+
+        private fun restoreFromBackup(): AppSettings? {
+            return try {
+                val file = backupFile()
+                if (!file.exists()) return null
+                val json = JSONObject(file.readText())
+                AppSettings(
+                    language = Language.fromCode(json.optString("language", "de")),
+                    useRealSunTimes = json.optBoolean("use_real_sun_times", false),
+                    fixedSunrise = json.optInt("fixed_sunrise", 390),
+                    fixedSunset = json.optInt("fixed_sunset", 1080),
+                    latitude = json.optDouble("latitude", 51.0),
+                    longitude = json.optDouble("longitude", 10.0),
+                    triggerWord = json.optString("trigger_word", "hilfe"),
+                    triggerRepetitions = json.optInt("trigger_repetitions", 3),
+                    apiEndpoint = json.optString("api_endpoint", "http://localhost:8080"),
+                    voiceDetectionEnabled = json.optBoolean("voice_detection_enabled", true),
+                    emailEnabled = json.optBoolean("email_enabled", false),
+                    emailRecipient = json.optString("email_recipient", ""),
+                    emailSender = json.optString("email_sender", ""),
+                    emailPassword = json.optString("email_password", ""),
+                    smtpHost = json.optString("smtp_host", "smtp.gmail.com"),
+                    smtpPort = json.optInt("smtp_port", 587),
+                    smtpUseSsl = json.optBoolean("smtp_use_ssl", false),
+                    emergencyCode = json.optString("emergency_code", "SB00;300495;A 001"),
+                    watchdogEnabled = json.optBoolean("watchdog_enabled", true),
+                    watchdogTimeMinutes = json.optInt("watchdog_time_minutes", 840),
+                    watchdogCode = json.optString("watchdog_code", "SB00;300495;A 002")
+                )
+            } catch (e: Exception) {
+                null
             }
         }
     }

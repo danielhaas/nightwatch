@@ -28,11 +28,14 @@ class VoiceRecognitionService : Service() {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var isListening = false
     private var audioManager: AudioManager? = null
-    private var originalVolume: Int = 0
+    private var originalMusicVolume: Int = 0
+    private var originalNotifVolume: Int = 0
+    private var originalSystemVolume: Int = 0
     private var speechLanguage: String = "de-DE"
     private var audioFeedback: AudioFeedback? = null
     private var replyMonitor: ReplyMonitor? = null
     private var restartJob: Job? = null
+    private var emergencyCooldown = false
 
     companion object {
         const val CHANNEL_ID = "nightwatch_voice"
@@ -225,22 +228,57 @@ class VoiceRecognitionService : Service() {
 
     private fun muteBeep() {
         audioManager?.let { am ->
-            originalVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC)
-            am.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
+            originalMusicVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+            try { am.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0) } catch (e: SecurityException) { }
+            // On Android 6+, use adjustStreamVolume with ADJUST_MUTE
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                try { am.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_MUTE, 0) } catch (e: SecurityException) { }
+                try { am.adjustStreamVolume(AudioManager.STREAM_SYSTEM, AudioManager.ADJUST_MUTE, 0) } catch (e: SecurityException) { }
+            } else {
+                try {
+                    originalNotifVolume = am.getStreamVolume(AudioManager.STREAM_NOTIFICATION)
+                    am.setStreamVolume(AudioManager.STREAM_NOTIFICATION, 0, 0)
+                } catch (e: SecurityException) { }
+                try {
+                    originalSystemVolume = am.getStreamVolume(AudioManager.STREAM_SYSTEM)
+                    am.setStreamVolume(AudioManager.STREAM_SYSTEM, 0, 0)
+                } catch (e: SecurityException) { }
+            }
         }
     }
 
     private fun unmuteBeep() {
-        audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume, 0)
+        audioManager?.let { am ->
+            try { am.setStreamVolume(AudioManager.STREAM_MUSIC, originalMusicVolume, 0) } catch (e: SecurityException) { }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                try { am.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_UNMUTE, 0) } catch (e: SecurityException) { }
+                try { am.adjustStreamVolume(AudioManager.STREAM_SYSTEM, AudioManager.ADJUST_UNMUTE, 0) } catch (e: SecurityException) { }
+            } else {
+                try { am.setStreamVolume(AudioManager.STREAM_NOTIFICATION, originalNotifVolume, 0) } catch (e: SecurityException) { }
+                try { am.setStreamVolume(AudioManager.STREAM_SYSTEM, originalSystemVolume, 0) } catch (e: SecurityException) { }
+            }
+        }
     }
 
     private fun onEmergencyDetected() {
+        if (emergencyCooldown) return
+        emergencyCooldown = true
+        // Reset cooldown after 60 seconds
+        scope.launch {
+            delay(60_000)
+            emergencyCooldown = false
+        }
+
         val intent = Intent(ACTION_EMERGENCY)
+        intent.setPackage(packageName)
         sendBroadcast(intent)
 
         scope.launch(Dispatchers.IO) {
             EmergencyApiClient.sendEmergency()
         }
+
+        // Announce sending
+        audioFeedback?.announceEmergencySending()
 
         // Send emergency email if configured
         val settings = AppSettings.load(this)
@@ -256,6 +294,9 @@ class VoiceRecognitionService : Service() {
                     useSsl = settings.smtpUseSsl
                 )
                 val success = EmergencyEmailSender.sendEmergencyEmail(config)
+
+                // Wait for the "sending" announcement to finish before "sent"
+                delay(5000)
 
                 // Audio feedback on main thread
                 withContext(Dispatchers.Main) {

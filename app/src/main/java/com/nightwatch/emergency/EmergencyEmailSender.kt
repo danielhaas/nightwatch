@@ -37,9 +37,10 @@ object EmergencyEmailSender {
             }
             put("mail.smtp.ssl.trust", config.smtpHost)
         }
+        val password = config.senderPassword.replace(" ", "")
         return Session.getInstance(props, object : Authenticator() {
             override fun getPasswordAuthentication(): PasswordAuthentication {
-                return PasswordAuthentication(config.senderEmail, config.senderPassword)
+                return PasswordAuthentication(config.senderEmail, password)
             }
         })
     }
