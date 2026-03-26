@@ -243,6 +243,26 @@ object Strings {
             Language.IT to "Si prega di verificare immediatamente se \u00e8 necessario aiuto."
         ),
 
+        // Audio feedback
+        "audio_emergency_sent" to mapOf(
+            Language.DE to "Notruf wurde erfolgreich gesendet.",
+            Language.EN to "Emergency call was sent successfully.",
+            Language.FR to "L'appel d'urgence a \u00e9t\u00e9 envoy\u00e9 avec succ\u00e8s.",
+            Language.IT to "La chiamata di emergenza \u00e8 stata inviata con successo."
+        ),
+        "audio_emergency_failed" to mapOf(
+            Language.DE to "Achtung! Notruf konnte nicht gesendet werden!",
+            Language.EN to "Warning! Emergency call could not be sent!",
+            Language.FR to "Attention! L'appel d'urgence n'a pas pu \u00eatre envoy\u00e9!",
+            Language.IT to "Attenzione! La chiamata di emergenza non ha potuto essere inviata!"
+        ),
+        "audio_reply_received" to mapOf(
+            Language.DE to "Antwort erhalten. Hilfe ist unterwegs!",
+            Language.EN to "Reply received. Help is on the way!",
+            Language.FR to "R\u00e9ponse re\u00e7ue. L'aide est en chemin!",
+            Language.IT to "Risposta ricevuta. I soccorsi sono in arrivo!"
+        ),
+
         // Mock server
         "emergency_received" to mapOf(
             Language.DE to "Notruf empfangen. Hilfe ist unterwegs.",

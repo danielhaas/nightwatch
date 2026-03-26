@@ -31,7 +31,7 @@ fun StarsOverlay(
 
     val stars = remember {
         val rng = Random(42)
-        List(30) {
+        List(80) {
             Star(
                 x = rng.nextFloat(),
                 y = rng.nextFloat() * 0.7f, // mostly upper sky
@@ -54,11 +54,18 @@ fun StarsOverlay(
         animationSpec = infiniteRepeatable(tween(3500, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "twinkle2"
     )
+    val twinkle3 by infiniteTransition.animateFloat(
+        initialValue = 0.5f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(4500, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "twinkle3"
+    )
+
     Canvas(modifier = modifier.fillMaxSize()) {
         stars.forEachIndexed { index, star ->
-            val twinkle = when (index % 2) {
+            val twinkle = when (index % 3) {
                 0 -> twinkle1
-                else -> twinkle2
+                1 -> twinkle2
+                else -> twinkle3
             }
             drawCircle(
                 color = Color.White.copy(alpha = baseAlpha * twinkle),

@@ -13,8 +13,10 @@ import android.os.IBinder
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import com.nightwatch.audio.AudioFeedback
 import com.nightwatch.emergency.EmergencyApiClient
 import com.nightwatch.emergency.EmergencyEmailSender
+import com.nightwatch.emergency.ReplyMonitor
 import com.nightwatch.model.AppSettings
 import com.nightwatch.model.Strings
 import kotlinx.coroutines.*
@@ -28,6 +30,9 @@ class VoiceRecognitionService : Service() {
     private var audioManager: AudioManager? = null
     private var originalVolume: Int = 0
     private var speechLanguage: String = "de-DE"
+    private var audioFeedback: AudioFeedback? = null
+    private var replyMonitor: ReplyMonitor? = null
+    private var restartJob: Job? = null
 
     companion object {
         const val CHANNEL_ID = "nightwatch_voice"
@@ -80,6 +85,8 @@ class VoiceRecognitionService : Service() {
         super.onCreate()
         createNotificationChannel()
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        audioFeedback = AudioFeedback(this)
+        replyMonitor = ReplyMonitor(this)
         muteBeep()
         helpDetector.listener = object : HelpDetector.Listener {
             override fun onHelpDetected() {
@@ -187,7 +194,9 @@ class VoiceRecognitionService : Service() {
     }
 
     private fun restartListeningDelayed() {
-        scope.launch {
+        // Cancel any pending restart to prevent coroutine pile-up
+        restartJob?.cancel()
+        restartJob = scope.launch {
             // Destroy old recognizer to free memory before restarting
             try {
                 speechRecognizer?.stopListening()
@@ -246,7 +255,18 @@ class VoiceRecognitionService : Service() {
                     emergencyCode = settings.emergencyCode,
                     useSsl = settings.smtpUseSsl
                 )
-                EmergencyEmailSender.sendEmergencyEmail(config)
+                val success = EmergencyEmailSender.sendEmergencyEmail(config)
+
+                // Audio feedback on main thread
+                withContext(Dispatchers.Main) {
+                    if (success) {
+                        audioFeedback?.announceEmergencySent()
+                        // Start monitoring for reply
+                        audioFeedback?.let { replyMonitor?.monitorForReply(it) }
+                    } else {
+                        audioFeedback?.announceEmergencyFailed()
+                    }
+                }
             }
         }
     }
@@ -283,6 +303,8 @@ class VoiceRecognitionService : Service() {
 
     override fun onDestroy() {
         stopListening()
+        replyMonitor?.stopMonitoring()
+        audioFeedback?.shutdown()
         super.onDestroy()
     }
 }
