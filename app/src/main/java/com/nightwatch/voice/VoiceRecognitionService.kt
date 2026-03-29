@@ -25,7 +25,10 @@ class VoiceRecognitionService : Service() {
 
     private var speechRecognizer: SpeechRecognizer? = null
     private val helpDetector = HelpDetector()
-    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val checkDetector = HelpDetector(triggerWord = "check", requiredCount = 3).apply {
+        alternateWords = listOf("jack", "tschek", "tscheck", "scheck", "schick", "schek", "tcheck", "czech", "jeck", "jäck", "tschäck")
+    }
+    private var scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var isListening = false
     private var audioManager: AudioManager? = null
     private var originalMusicVolume: Int = 0
@@ -36,6 +39,8 @@ class VoiceRecognitionService : Service() {
     private var replyMonitor: ReplyMonitor? = null
     private var restartJob: Job? = null
     private var emergencyCooldown = false
+    private var checkCooldown = false
+    private var consecutiveErrors = 0
 
     companion object {
         const val CHANNEL_ID = "nightwatch_voice"
@@ -94,6 +99,11 @@ class VoiceRecognitionService : Service() {
         helpDetector.listener = object : HelpDetector.Listener {
             override fun onHelpDetected() {
                 onEmergencyDetected()
+            }
+        }
+        checkDetector.listener = object : HelpDetector.Listener {
+            override fun onHelpDetected() {
+                onCheckDetected()
             }
         }
     }
@@ -171,15 +181,19 @@ class VoiceRecognitionService : Service() {
         override fun onEndOfSpeech() {}
 
         override fun onError(error: Int) {
+            consecutiveErrors++
             if (isListening) {
                 restartListeningDelayed()
             }
         }
 
         override fun onResults(results: Bundle?) {
+            consecutiveErrors = 0
             val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
             matches?.forEach { text ->
+                android.util.Log.d("NightWatch", "Heard: $text")
                 helpDetector.processText(text)
+                checkDetector.processText(text)
             }
             if (isListening) {
                 restartListeningDelayed()
@@ -187,9 +201,11 @@ class VoiceRecognitionService : Service() {
         }
 
         override fun onPartialResults(partialResults: Bundle?) {
+            consecutiveErrors = 0
             val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
             matches?.forEach { text ->
                 helpDetector.processText(text)
+                checkDetector.processText(text)
             }
         }
 
@@ -207,12 +223,84 @@ class VoiceRecognitionService : Service() {
             } catch (e: Exception) { /* ignore */ }
             speechRecognizer = null
 
-            delay(1000)
+            // After many consecutive failures, the recognition service is dead.
+            // Restart our entire service to force a fresh connection.
+            if (consecutiveErrors > 10) {
+                android.util.Log.d("NightWatch", "Recognition service dead, restarting service (errors: $consecutiveErrors)")
+                consecutiveErrors = 0
+                delay(5_000)
+                restartService()
+                return@launch
+            }
+
+            // Back off when recognition service is failing repeatedly
+            val delayMs = when {
+                consecutiveErrors > 5 -> 5_000L
+                else -> 1_000L
+            }
+            delay(delayMs)
+
             if (isListening) {
                 speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this@VoiceRecognitionService).apply {
                     setRecognitionListener(createRecognitionListener())
                 }
                 startRecognition()
+            }
+        }
+    }
+
+    private fun restartService() {
+        val context = applicationContext
+        val intent = Intent(context, VoiceRecognitionService::class.java).apply {
+            action = ACTION_START
+            val settings = AppSettings.load(context)
+            putExtra(EXTRA_TRIGGER_WORD, settings.triggerWord)
+            putExtra(EXTRA_TRIGGER_COUNT, settings.triggerRepetitions)
+            putExtra(EXTRA_SPEECH_LANGUAGE, settings.language.speechCode)
+            putExtra(EXTRA_API_ENDPOINT, settings.apiEndpoint)
+        }
+        stopListening()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+    }
+
+    private fun onCheckDetected() {
+        if (checkCooldown) return
+        checkCooldown = true
+        scope.launch {
+            delay(60_000)
+            checkCooldown = false
+        }
+
+        // Send watchdog email if configured
+        val settings = AppSettings.load(this)
+        if (settings.emailEnabled && settings.emailRecipient.isNotBlank()) {
+            audioFeedback?.speak(Strings.get("audio_watchdog_sending"))
+
+            scope.launch(Dispatchers.IO) {
+                val config = EmergencyEmailSender.EmailConfig(
+                    smtpHost = settings.smtpHost,
+                    smtpPort = settings.smtpPort,
+                    senderEmail = settings.emailSender,
+                    senderPassword = settings.emailPassword,
+                    recipientEmail = settings.emailRecipient,
+                    emergencyCode = settings.watchdogCode,
+                    useSsl = settings.smtpUseSsl
+                )
+                val success = EmergencyEmailSender.sendWatchdogEmail(config)
+
+                delay(5000)
+
+                withContext(Dispatchers.Main) {
+                    if (success) {
+                        audioFeedback?.speak(Strings.get("audio_watchdog_sent"))
+                    } else {
+                        audioFeedback?.speak(Strings.get("audio_watchdog_failed"))
+                    }
+                }
             }
         }
     }
@@ -224,6 +312,7 @@ class VoiceRecognitionService : Service() {
         speechRecognizer = null
         unmuteBeep()
         scope.cancel()
+        scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     }
 
     private fun muteBeep() {

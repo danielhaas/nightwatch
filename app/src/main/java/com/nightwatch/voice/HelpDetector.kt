@@ -22,11 +22,16 @@ class HelpDetector(
      * Process recognized text from speech recognizer.
      * Returns true if emergency phrase detected.
      */
+    var alternateWords: List<String> = emptyList()
+
     fun processText(text: String): Boolean {
         val lower = text.lowercase()
         val word = triggerWord.lowercase()
+        val allWords = listOf(word) + alternateWords.map { it.lowercase() }
 
-        val wordCount = word.toRegex(RegexOption.LITERAL).findAll(lower).count()
+        val wordCount = allWords.maxOf { w ->
+            w.toRegex(RegexOption.LITERAL).findAll(lower).count()
+        }
 
         if (wordCount >= requiredCount) {
             listener?.onHelpDetected()

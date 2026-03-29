@@ -269,6 +269,25 @@ object Strings {
             Language.IT to "Risposta ricevuta. I soccorsi sono in arrivo!"
         ),
 
+        "audio_watchdog_sending" to mapOf(
+            Language.DE to "Kontrollmeldung wird gesendet.",
+            Language.EN to "Sending check-in message.",
+            Language.FR to "Envoi du message de contr\u00f4le.",
+            Language.IT to "Invio del messaggio di controllo."
+        ),
+        "audio_watchdog_sent" to mapOf(
+            Language.DE to "Kontrollmeldung wurde erfolgreich gesendet.",
+            Language.EN to "Check-in message was sent successfully.",
+            Language.FR to "Le message de contr\u00f4le a \u00e9t\u00e9 envoy\u00e9 avec succ\u00e8s.",
+            Language.IT to "Il messaggio di controllo \u00e8 stato inviato con successo."
+        ),
+        "audio_watchdog_failed" to mapOf(
+            Language.DE to "Achtung! Kontrollmeldung konnte nicht gesendet werden!",
+            Language.EN to "Warning! Check-in message could not be sent!",
+            Language.FR to "Attention! Le message de contr\u00f4le n'a pas pu \u00eatre envoy\u00e9!",
+            Language.IT to "Attenzione! Il messaggio di controllo non ha potuto essere inviato!"
+        ),
+
         // Mock server
         "emergency_received" to mapOf(
             Language.DE to "Notruf empfangen. Hilfe ist unterwegs.",
