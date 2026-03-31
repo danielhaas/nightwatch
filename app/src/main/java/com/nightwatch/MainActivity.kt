@@ -20,6 +20,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.nightwatch.emergency.EmergencyMockServer
 import com.nightwatch.model.AppSettings
 import com.nightwatch.model.Strings
+import com.nightwatch.service.KeepAliveService
 import com.nightwatch.ui.screens.MainScreen
 import com.nightwatch.ui.theme.NightWatchTheme
 import com.nightwatch.viewmodel.MainViewModel
@@ -77,6 +78,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        KeepAliveService.start(this)
         requestPermissions()
         registerEmergencyReceiver()
     }
@@ -143,7 +145,8 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         try { unregisterReceiver(emergencyReceiver) } catch (e: Exception) { /* ignore */ }
-        VoiceRecognitionService.stop(this)
+        // Don't stop VoiceRecognitionService or KeepAliveService here —
+        // they must survive activity destruction to keep the process alive
         mockServer?.stop()
     }
 }

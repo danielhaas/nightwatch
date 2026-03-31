@@ -33,6 +33,10 @@
         </activity>
 
         <service
+            android:name=".service.KeepAliveService"
+            android:exported="false" />
+
+        <service
             android:name=".voice.VoiceRecognitionService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
