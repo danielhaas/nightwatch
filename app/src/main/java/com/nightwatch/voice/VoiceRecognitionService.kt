@@ -24,9 +24,11 @@ import kotlinx.coroutines.*
 class VoiceRecognitionService : Service() {
 
     private var speechRecognizer: SpeechRecognizer? = null
-    private val helpDetector = HelpDetector()
+    private val helpDetector = HelpDetector().apply {
+        alternateWords = listOf("hülfe", "helfe", "hilf", "ilfe", "gilfe", "kilfe", "hife", "hilfä", "helft")
+    }
     private val checkDetector = HelpDetector(triggerWord = "check", requiredCount = 3).apply {
-        alternateWords = listOf("jack", "tschek", "tscheck", "scheck", "schick", "schek", "tcheck", "czech", "jeck", "jäck", "tschäck")
+        alternateWords = listOf("jack", "chuck", "zack", "tschek", "tscheck", "scheck", "schick", "schek", "tcheck", "czech", "jeck", "jäck", "tschäck", "shack", "zeck", "tschak")
     }
     private var scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var isListening = false
@@ -165,6 +167,18 @@ class VoiceRecognitionService : Service() {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, speechLanguage)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            // Suppress beep/vibration
+            putExtra("android.speech.extra.DICTATION_MODE", true)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 30000L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 10000L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 10000L)
+        }
+        // Don't mute while TTS is speaking
+        if (audioFeedback?.isSpeaking != true) {
+            muteBeep()
+            try {
+                audioManager?.ringerMode = AudioManager.RINGER_MODE_SILENT
+            } catch (_: Exception) { }
         }
         try {
             speechRecognizer?.startListening(intent)
@@ -204,6 +218,7 @@ class VoiceRecognitionService : Service() {
             consecutiveErrors = 0
             val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
             matches?.forEach { text ->
+                android.util.Log.d("NightWatch", "Partial: $text")
                 helpDetector.processText(text)
                 checkDetector.processText(text)
             }
@@ -315,36 +330,42 @@ class VoiceRecognitionService : Service() {
         scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     }
 
+    private val streamsToMute = intArrayOf(
+        AudioManager.STREAM_MUSIC,
+        AudioManager.STREAM_NOTIFICATION,
+        AudioManager.STREAM_SYSTEM,
+        AudioManager.STREAM_RING,
+        AudioManager.STREAM_ALARM,
+        5 // STREAM_ACCESSIBILITY (hidden constant)
+    )
+    private val originalVolumes = IntArray(streamsToMute.size)
+
     private fun muteBeep() {
         audioManager?.let { am ->
-            originalMusicVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC)
-            try { am.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0) } catch (e: SecurityException) { }
-            // On Android 6+, use adjustStreamVolume with ADJUST_MUTE
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                try { am.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_MUTE, 0) } catch (e: SecurityException) { }
-                try { am.adjustStreamVolume(AudioManager.STREAM_SYSTEM, AudioManager.ADJUST_MUTE, 0) } catch (e: SecurityException) { }
-            } else {
+            for (i in streamsToMute.indices) {
                 try {
-                    originalNotifVolume = am.getStreamVolume(AudioManager.STREAM_NOTIFICATION)
-                    am.setStreamVolume(AudioManager.STREAM_NOTIFICATION, 0, 0)
-                } catch (e: SecurityException) { }
-                try {
-                    originalSystemVolume = am.getStreamVolume(AudioManager.STREAM_SYSTEM)
-                    am.setStreamVolume(AudioManager.STREAM_SYSTEM, 0, 0)
-                } catch (e: SecurityException) { }
+                    originalVolumes[i] = am.getStreamVolume(streamsToMute[i])
+                    am.setStreamVolume(streamsToMute[i], 0, 0)
+                } catch (e: SecurityException) {
+                    // DND restriction, try adjust method
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                        try { am.adjustStreamVolume(streamsToMute[i], AudioManager.ADJUST_MUTE, 0) } catch (_: Exception) { }
+                    }
+                }
             }
         }
     }
 
     private fun unmuteBeep() {
         audioManager?.let { am ->
-            try { am.setStreamVolume(AudioManager.STREAM_MUSIC, originalMusicVolume, 0) } catch (e: SecurityException) { }
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                try { am.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_UNMUTE, 0) } catch (e: SecurityException) { }
-                try { am.adjustStreamVolume(AudioManager.STREAM_SYSTEM, AudioManager.ADJUST_UNMUTE, 0) } catch (e: SecurityException) { }
-            } else {
-                try { am.setStreamVolume(AudioManager.STREAM_NOTIFICATION, originalNotifVolume, 0) } catch (e: SecurityException) { }
-                try { am.setStreamVolume(AudioManager.STREAM_SYSTEM, originalSystemVolume, 0) } catch (e: SecurityException) { }
+            for (i in streamsToMute.indices) {
+                try {
+                    am.setStreamVolume(streamsToMute[i], originalVolumes[i], 0)
+                } catch (e: SecurityException) {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                        try { am.adjustStreamVolume(streamsToMute[i], AudioManager.ADJUST_UNMUTE, 0) } catch (_: Exception) { }
+                    }
+                }
             }
         }
     }

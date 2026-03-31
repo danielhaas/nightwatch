@@ -2,19 +2,22 @@ package com.nightwatch.audio
 
 import android.content.Context
 import android.media.AudioManager
+import android.os.Bundle
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import com.nightwatch.model.Strings
 import java.util.*
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
-/**
- * Provides audio feedback using Text-to-Speech.
- * Temporarily unmutes and raises volume for announcements.
- */
 class AudioFeedback(private val context: Context) : TextToSpeech.OnInitListener {
 
     private var tts: TextToSpeech? = null
     private var ready = false
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    @Volatile
+    var isSpeaking = false
+        private set
 
     init {
         tts = TextToSpeech(context, this)
@@ -36,15 +39,37 @@ class AudioFeedback(private val context: Context) : TextToSpeech.OnInitListener 
     fun speak(text: String) {
         if (!ready) return
 
-        // Ensure volume is audible
-        val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-        val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-        if (currentVol == 0) {
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVol / 2, 0)
-        }
+        isSpeaking = true
 
-        @Suppress("DEPRECATION")
-        tts?.speak(text, TextToSpeech.QUEUE_ADD, null)
+        // Unmute and raise volume
+        val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        try { audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVol / 2, 0) } catch (_: Exception) { }
+        try { audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL } catch (_: Exception) { }
+
+        val latch = CountDownLatch(1)
+        val utteranceId = "nw_${System.currentTimeMillis()}"
+
+        tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(id: String?) {}
+            override fun onDone(id: String?) {
+                isSpeaking = false
+                latch.countDown()
+            }
+            @Deprecated("Deprecated")
+            override fun onError(id: String?) {
+                isSpeaking = false
+                latch.countDown()
+            }
+        })
+
+        val params = Bundle().apply {
+            putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC)
+        }
+        tts?.speak(text, TextToSpeech.QUEUE_ADD, params, utteranceId)
+
+        // Wait for TTS to finish (max 15 seconds)
+        latch.await(15, TimeUnit.SECONDS)
+        isSpeaking = false
     }
 
     fun announceEmergencySending() {

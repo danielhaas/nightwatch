@@ -29,7 +29,7 @@ class HelpDetector(
         val word = triggerWord.lowercase()
         val allWords = listOf(word) + alternateWords.map { it.lowercase() }
 
-        val wordCount = allWords.maxOf { w ->
+        val wordCount = allWords.sumOf { w ->
             w.toRegex(RegexOption.LITERAL).findAll(lower).count()
         }
 
