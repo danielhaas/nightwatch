@@ -194,13 +194,10 @@ class VoiceRecognitionService : Service() {
         }
         override fun onRmsChanged(rmsdB: Float) {}
         override fun onBufferReceived(buffer: ByteArray?) {}
-        override fun onEndOfSpeech() {
-            maybeRaiseRecognizerAlarm()
-        }
+        override fun onEndOfSpeech() {}
 
         override fun onError(error: Int) {
             consecutiveErrors++
-            maybeRaiseRecognizerAlarm()
             if (isListening) {
                 restartListeningDelayed()
             }
@@ -232,26 +229,6 @@ class VoiceRecognitionService : Service() {
         }
 
         override fun onEvent(eventType: Int, params: Bundle?) {}
-    }
-
-    private fun maybeRaiseRecognizerAlarm() {
-        if (!RecognizerHealth.shouldRaiseAlarm(this)) return
-        val settings = AppSettings.load(this)
-        if (!settings.emailEnabled || settings.emailRecipient.isBlank()) return
-        RecognizerHealth.markAlarmSent(this)
-        val stats = RecognizerHealth.getStats(this)
-        scope.launch(Dispatchers.IO) {
-            val config = EmergencyEmailSender.EmailConfig(
-                smtpHost = settings.smtpHost,
-                smtpPort = settings.smtpPort,
-                senderEmail = settings.emailSender,
-                senderPassword = settings.emailPassword,
-                recipientEmail = settings.emailRecipient,
-                emergencyCode = settings.watchdogCode,
-                useSsl = settings.smtpUseSsl
-            )
-            EmergencyEmailSender.sendRecognizerAlarmEmail(config, stats)
-        }
     }
 
     private fun restartListeningDelayed() {
