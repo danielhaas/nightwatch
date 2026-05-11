@@ -227,6 +227,60 @@ object Strings {
             Language.FR to "NightWatch est actif et fonctionne normalement.",
             Language.IT to "NightWatch \u00e8 attivo e funziona normalmente."
         ),
+        "watchdog_email_alarm_subject" to mapOf(
+            Language.DE to "[NightWatch ALARM] Spracherkennung scheint nicht zu funktionieren",
+            Language.EN to "[NightWatch ALARM] Voice recognition appears broken",
+            Language.FR to "[NightWatch ALARME] La reconnaissance vocale semble en panne",
+            Language.IT to "[NightWatch ALLARME] Il riconoscimento vocale sembra non funzionare"
+        ),
+        "recognizer_alarm_subject" to mapOf(
+            Language.DE to "[NightWatch ALARM] Spracherkennung schl\u00e4gt fehl - Notruf-Trigger m\u00f6glicherweise wirkungslos",
+            Language.EN to "[NightWatch ALARM] Speech recognition failing - emergency trigger may not work",
+            Language.FR to "[NightWatch ALARME] \u00c9chec reconnaissance vocale - le d\u00e9clencheur d'urgence peut \u00eatre inop\u00e9rant",
+            Language.IT to "[NightWatch ALLARME] Riconoscimento vocale guasto - il trigger di emergenza potrebbe non funzionare"
+        ),
+        "recognizer_alarm_body" to mapOf(
+            Language.DE to "ACHTUNG: NightWatch hat mehrfach Sprache erkannt, aber keine Transkription erhalten. Der Notruf per Sprachbefehl funktioniert wahrscheinlich nicht. Bitte das Ger\u00e4t pr\u00fcfen.",
+            Language.EN to "WARNING: NightWatch detected speech several times but received no transcription. The voice emergency trigger is most likely not working. Please check the device.",
+            Language.FR to "ATTENTION: NightWatch a d\u00e9tect\u00e9 la parole plusieurs fois mais n'a re\u00e7u aucune transcription. Le d\u00e9clencheur vocal d'urgence ne fonctionne probablement pas. Veuillez v\u00e9rifier l'appareil.",
+            Language.IT to "ATTENZIONE: NightWatch ha rilevato la voce pi\u00f9 volte ma non ha ricevuto alcuna trascrizione. Il trigger di emergenza vocale probabilmente non funziona. Si prega di controllare il dispositivo."
+        ),
+        "health_header" to mapOf(
+            Language.DE to "Diagnose der Spracherkennung:",
+            Language.EN to "Speech recognition diagnostics:",
+            Language.FR to "Diagnostic de la reconnaissance vocale:",
+            Language.IT to "Diagnostica del riconoscimento vocale:"
+        ),
+        "health_last_transcription" to mapOf(
+            Language.DE to "Letzte erfolgreiche Transkription",
+            Language.EN to "Last successful transcription",
+            Language.FR to "Derni\u00e8re transcription r\u00e9ussie",
+            Language.IT to "Ultima trascrizione riuscita"
+        ),
+        "health_never" to mapOf(
+            Language.DE to "nie",
+            Language.EN to "never",
+            Language.FR to "jamais",
+            Language.IT to "mai"
+        ),
+        "health_speech_since" to mapOf(
+            Language.DE to "Spracherkennungs-Ereignisse seitdem",
+            Language.EN to "Speech events since then",
+            Language.FR to "\u00c9v\u00e9nements vocaux depuis",
+            Language.IT to "Eventi vocali da allora"
+        ),
+        "health_total_speech" to mapOf(
+            Language.DE to "Spracherkennungs-Ereignisse gesamt",
+            Language.EN to "Total speech events",
+            Language.FR to "Total des \u00e9v\u00e9nements vocaux",
+            Language.IT to "Eventi vocali totali"
+        ),
+        "health_total_transcriptions" to mapOf(
+            Language.DE to "Erfolgreiche Transkriptionen gesamt",
+            Language.EN to "Total successful transcriptions",
+            Language.FR to "Total des transcriptions r\u00e9ussies",
+            Language.IT to "Totale trascrizioni riuscite"
+        ),
 
         "emergency_code_label" to mapOf(
             Language.DE to "Code", Language.EN to "Code",

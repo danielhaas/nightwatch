@@ -1,6 +1,7 @@
 package com.nightwatch.emergency
 
 import com.nightwatch.model.Strings
+import com.nightwatch.voice.RecognizerHealth
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.mail.*
@@ -71,18 +72,20 @@ object EmergencyEmailSender {
         }
     }
 
-    fun sendWatchdogEmail(config: EmailConfig): Boolean {
+    fun sendWatchdogEmail(config: EmailConfig, stats: RecognizerHealth.Stats? = null): Boolean {
         return try {
             val session = createSession(config)
+            val broken = stats != null && stats.speechSinceLastTranscription >= RecognizerHealth.ALARM_THRESHOLD
             val message = MimeMessage(session).apply {
                 setFrom(InternetAddress(config.senderEmail, "NightWatch"))
                 setRecipient(Message.RecipientType.TO, InternetAddress(config.recipientEmail))
-                subject = config.emergencyCode
+                subject = if (broken) Strings.get("watchdog_email_alarm_subject") else config.emergencyCode
                 setText(
                     "${Strings.get("watchdog_email_body")}\n\n" +
                     "${Strings.get("emergency_email_time")}: ${timestamp()}\n" +
                     "${Strings.get("emergency_email_device")}: NightWatch\n" +
-                    "${Strings.get("emergency_code_label")}: ${config.emergencyCode}\n"
+                    "${Strings.get("emergency_code_label")}: ${config.emergencyCode}\n" +
+                    (stats?.let { "\n" + formatHealthReport(it) } ?: "")
                 )
             }
             Transport.send(message)
@@ -91,5 +94,40 @@ object EmergencyEmailSender {
             e.printStackTrace()
             false
         }
+    }
+
+    fun sendRecognizerAlarmEmail(config: EmailConfig, stats: RecognizerHealth.Stats): Boolean {
+        return try {
+            val session = createSession(config)
+            val message = MimeMessage(session).apply {
+                setFrom(InternetAddress(config.senderEmail, "NightWatch"))
+                setRecipient(Message.RecipientType.TO, InternetAddress(config.recipientEmail))
+                subject = Strings.get("recognizer_alarm_subject")
+                setText(
+                    "${Strings.get("recognizer_alarm_body")}\n\n" +
+                    "${Strings.get("emergency_email_time")}: ${timestamp()}\n" +
+                    "${Strings.get("emergency_email_device")}: NightWatch\n\n" +
+                    formatHealthReport(stats)
+                )
+            }
+            Transport.send(message)
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    private fun formatHealthReport(s: RecognizerHealth.Stats): String {
+        val lastTrans = if (s.lastTranscriptionAt > 0) {
+            SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(s.lastTranscriptionAt))
+        } else {
+            Strings.get("health_never")
+        }
+        return Strings.get("health_header") + "\n" +
+            "  " + Strings.get("health_last_transcription") + ": " + lastTrans + "\n" +
+            "  " + Strings.get("health_speech_since") + ": " + s.speechSinceLastTranscription + "\n" +
+            "  " + Strings.get("health_total_speech") + ": " + s.totalSpeechEvents + "\n" +
+            "  " + Strings.get("health_total_transcriptions") + ": " + s.totalTranscriptions + "\n"
     }
 }

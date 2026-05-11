@@ -189,13 +189,18 @@ class VoiceRecognitionService : Service() {
 
     private fun createRecognitionListener() = object : RecognitionListener {
         override fun onReadyForSpeech(params: Bundle?) {}
-        override fun onBeginningOfSpeech() {}
+        override fun onBeginningOfSpeech() {
+            RecognizerHealth.onSpeechEvent(this@VoiceRecognitionService)
+        }
         override fun onRmsChanged(rmsdB: Float) {}
         override fun onBufferReceived(buffer: ByteArray?) {}
-        override fun onEndOfSpeech() {}
+        override fun onEndOfSpeech() {
+            maybeRaiseRecognizerAlarm()
+        }
 
         override fun onError(error: Int) {
             consecutiveErrors++
+            maybeRaiseRecognizerAlarm()
             if (isListening) {
                 restartListeningDelayed()
             }
@@ -206,6 +211,7 @@ class VoiceRecognitionService : Service() {
             val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
             matches?.forEach { text ->
                 android.util.Log.d("NightWatch", "Heard: $text")
+                RecognizerHealth.onTranscription(this@VoiceRecognitionService, text)
                 helpDetector.processText(text)
                 checkDetector.processText(text)
             }
@@ -219,12 +225,33 @@ class VoiceRecognitionService : Service() {
             val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
             matches?.forEach { text ->
                 android.util.Log.d("NightWatch", "Partial: $text")
+                RecognizerHealth.onTranscription(this@VoiceRecognitionService, text)
                 helpDetector.processText(text)
                 checkDetector.processText(text)
             }
         }
 
         override fun onEvent(eventType: Int, params: Bundle?) {}
+    }
+
+    private fun maybeRaiseRecognizerAlarm() {
+        if (!RecognizerHealth.shouldRaiseAlarm(this)) return
+        val settings = AppSettings.load(this)
+        if (!settings.emailEnabled || settings.emailRecipient.isBlank()) return
+        RecognizerHealth.markAlarmSent(this)
+        val stats = RecognizerHealth.getStats(this)
+        scope.launch(Dispatchers.IO) {
+            val config = EmergencyEmailSender.EmailConfig(
+                smtpHost = settings.smtpHost,
+                smtpPort = settings.smtpPort,
+                senderEmail = settings.emailSender,
+                senderPassword = settings.emailPassword,
+                recipientEmail = settings.emailRecipient,
+                emergencyCode = settings.watchdogCode,
+                useSsl = settings.smtpUseSsl
+            )
+            EmergencyEmailSender.sendRecognizerAlarmEmail(config, stats)
+        }
     }
 
     private fun restartListeningDelayed() {

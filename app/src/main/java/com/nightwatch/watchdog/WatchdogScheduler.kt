@@ -4,6 +4,7 @@ import android.content.Context
 import com.nightwatch.emergency.EmergencyEmailSender
 import com.nightwatch.model.AppSettings
 import com.nightwatch.model.Strings
+import com.nightwatch.voice.RecognizerHealth
 import kotlinx.coroutines.*
 import java.util.Calendar
 
@@ -46,6 +47,7 @@ class WatchdogScheduler(private val context: Context) {
         if (currentMinutes >= settings.watchdogTimeMinutes && dayOfYear != lastSentDay) {
             lastSentDay = dayOfYear
 
+            val stats = RecognizerHealth.getStats(context)
             withContext(Dispatchers.IO) {
                 val config = EmergencyEmailSender.EmailConfig(
                     smtpHost = settings.smtpHost,
@@ -56,7 +58,7 @@ class WatchdogScheduler(private val context: Context) {
                     emergencyCode = settings.watchdogCode,
                     useSsl = settings.smtpUseSsl
                 )
-                EmergencyEmailSender.sendWatchdogEmail(config)
+                EmergencyEmailSender.sendWatchdogEmail(config, stats)
             }
         }
     }
